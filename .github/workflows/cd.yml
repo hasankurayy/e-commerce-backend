@@ -19,60 +19,25 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build parent and common-lib
+      - name: Build and push Docker images
         run: |
-          mvn install -N -B
-          mvn install -f common-lib/pom.xml -B
+          mvn install jib:build -DskipTests \
+            -Ddockerhub.username=${{ secrets.DOCKERHUB_USERNAME }} \
+            --no-transfer-progress
 
-      - name: Build and push Docker images to ECR
-        run: |
-          for service in config-server eureka-server api-gateway user-service product-service cart-service order-service payment-service notification-service; do
-            echo "=== Pushing $service ==="
-            mvn compile jib:build -f $service/pom.xml -B \
-              -Djib.to.image=${{ steps.login-ecr.outputs.registry }}/ecommerce/$service:${{ github.sha }} \
-              -Djib.to.auth.username=AWS \
-              -Djib.to.auth.password=$(aws ecr get-login-password)
-          done
-
-      - name: Generate Dockerrun.aws.json
-        run: |
-          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          SHA=${{ github.sha }}
-          cat > Dockerrun.aws.json << EOF
-          {
-            "AWSEBDockerrunVersion": 2,
-            "containerDefinitions": [
-              {"name": "config-server",       "image": "$ECR_REGISTRY/ecommerce/config-server:$SHA",       "memory": 512, "portMappings": [{"hostPort": 8888, "containerPort": 8888}]},
-              {"name": "eureka-server",        "image": "$ECR_REGISTRY/ecommerce/eureka-server:$SHA",        "memory": 512, "portMappings": [{"hostPort": 8761, "containerPort": 8761}]},
-              {"name": "api-gateway",          "image": "$ECR_REGISTRY/ecommerce/api-gateway:$SHA",          "memory": 512, "portMappings": [{"hostPort": 8080, "containerPort": 8080}]},
-              {"name": "user-service",         "image": "$ECR_REGISTRY/ecommerce/user-service:$SHA",         "memory": 512, "portMappings": [{"hostPort": 8081, "containerPort": 8081}]},
-              {"name": "product-service",      "image": "$ECR_REGISTRY/ecommerce/product-service:$SHA",      "memory": 512, "portMappings": [{"hostPort": 8082, "containerPort": 8082}]},
-              {"name": "cart-service",         "image": "$ECR_REGISTRY/ecommerce/cart-service:$SHA",         "memory": 512, "portMappings": [{"hostPort": 8083, "containerPort": 8083}]},
-              {"name": "order-service",        "image": "$ECR_REGISTRY/ecommerce/order-service:$SHA",        "memory": 512, "portMappings": [{"hostPort": 8084, "containerPort": 8084}]},
-              {"name": "payment-service",      "image": "$ECR_REGISTRY/ecommerce/payment-service:$SHA",      "memory": 512, "portMappings": [{"hostPort": 8085, "containerPort": 8085}]},
-              {"name": "notification-service", "image": "$ECR_REGISTRY/ecommerce/notification-service:$SHA", "memory": 512, "portMappings": [{"hostPort": 8086, "containerPort": 8086}]}
-            ]
-          }
-          EOF
-
-      - name: Deploy to Elastic Beanstalk
-        uses: einaregilsson/beanstalk-deploy@v22
+      - name: Deploy to Oracle VM
+        uses: appleboy/ssh-action@v1
         with:
-          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          region: ${{ secrets.AWS_REGION }}
-          application_name: ecommerce-backend
-          environment_name: ecommerce-backend-prod
-          version_label: ${{ github.sha }}
-          deployment_package: Dockerrun.aws.json
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            cd /home/ubuntu
+            sudo docker compose --env-file .env pull
+            sudo docker compose --env-file .env up -d
