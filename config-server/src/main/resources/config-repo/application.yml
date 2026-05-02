@@ -1,0 +1,32 @@
+# Tüm servislerin ortak konfigürasyonu
+# Her servis önce bunu okur, sonra kendi YAML'ını uygular
+
+jwt:
+  secret: ${JWT_SECRET:ecommerce-super-secret-jwt-key-minimum-256-bits-long-change-in-prod}
+  access-token-expiration-ms: 900000      # 15 dakika
+  refresh-token-expiration-ms: 604800000  # 7 gün
+
+spring:
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,refresh
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.ecommerce: DEBUG
+    org.springframework.web: INFO

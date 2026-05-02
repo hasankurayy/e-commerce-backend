@@ -1,0 +1,255 @@
+version: '3.9'
+
+services:
+
+  # ─── Altyapı ──────────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+    networks:
+      - ecommerce-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: ecommerce-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - ecommerce-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: ecommerce-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ecommerce-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Spring Cloud ──────────────────────────────────────────────────────────
+
+  config-server:
+    image: ecommerce/config-server:1.0.0-SNAPSHOT
+    container_name: ecommerce-config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - ENCRYPT_KEY=ecommerce-encrypt-key-change-in-prod
+    networks:
+      - ecommerce-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8888/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  eureka-server:
+    image: ecommerce/eureka-server:1.0.0-SNAPSHOT
+    container_name: ecommerce-eureka-server
+    ports:
+      - "8761:8761"
+    depends_on:
+      config-server:
+        condition: service_healthy
+    networks:
+      - ecommerce-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8761/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  api-gateway:
+    image: ecommerce/api-gateway:1.0.0-SNAPSHOT
+    container_name: ecommerce-api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URI=http://eureka-server:8761/eureka
+      - REDIS_HOST=redis
+    networks:
+      - ecommerce-net
+
+  # ─── İş Servisleri ─────────────────────────────────────────────────────────
+
+  user-service:
+    image: ecommerce/user-service:1.0.0-SNAPSHOT
+    container_name: ecommerce-user-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URI=http://eureka-server:8761/eureka
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASS=postgres
+    networks:
+      - ecommerce-net
+
+  product-service:
+    image: ecommerce/product-service:1.0.0-SNAPSHOT
+    container_name: ecommerce-product-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URI=http://eureka-server:8761/eureka
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASS=postgres
+    networks:
+      - ecommerce-net
+
+  cart-service:
+    image: ecommerce/cart-service:1.0.0-SNAPSHOT
+    container_name: ecommerce-cart-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URI=http://eureka-server:8761/eureka
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASS=postgres
+    networks:
+      - ecommerce-net
+
+  order-service:
+    image: ecommerce/order-service:1.0.0-SNAPSHOT
+    container_name: ecommerce-order-service
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URI=http://eureka-server:8761/eureka
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASS=postgres
+      - RABBITMQ_HOST=rabbitmq
+    networks:
+      - ecommerce-net
+
+  payment-service:
+    image: ecommerce/payment-service:1.0.0-SNAPSHOT
+    container_name: ecommerce-payment-service
+    ports:
+      - "8085:8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URI=http://eureka-server:8761/eureka
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASS=postgres
+      - RABBITMQ_HOST=rabbitmq
+      - IYZICO_API_KEY=${IYZICO_API_KEY:-sandbox-api-key}
+      - IYZICO_SECRET_KEY=${IYZICO_SECRET_KEY:-sandbox-secret-key}
+    networks:
+      - ecommerce-net
+
+  notification-service:
+    image: ecommerce/notification-service:1.0.0-SNAPSHOT
+    container_name: ecommerce-notification-service
+    ports:
+      - "8086:8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URI=http://eureka-server:8761/eureka
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASS=postgres
+      - RABBITMQ_HOST=rabbitmq
+    networks:
+      - ecommerce-net
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+
+networks:
+  ecommerce-net:
+    driver: bridge

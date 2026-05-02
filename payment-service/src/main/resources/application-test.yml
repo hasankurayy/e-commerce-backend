@@ -1,0 +1,20 @@
+spring:
+  config:
+    import: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+  rabbitmq:
+    host: localhost
+    port: 5672
+
+eureka:
+  client:
+    enabled: false
+
+iyzico:
+  api-key: test-api-key
+  secret-key: test-secret-key
+  base-url: https://sandbox-api.iyzipay.com

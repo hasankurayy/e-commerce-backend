@@ -1,0 +1,29 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: classpath:/config-repo
+        git:
+          # Production'da burası git repo URL'siyle değiştirilir
+          # uri: https://github.com/your-org/config-repo
+          # Şimdilik native (dosya sistemi) kullanıyoruz
+  profiles:
+    active: native
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh
+  endpoint:
+    health:
+      show-details: always
+
+encrypt:
+  key: ${ENCRYPT_KEY:local-dev-encrypt-key-change-in-prod}
