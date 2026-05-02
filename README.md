@@ -15,6 +15,28 @@ Canlı demo: **[n55-frontend.vercel.app](https://n55-frontend.vercel.app)**
 
 ---
 
+## Ek Özellikler
+
+### Otomatik Sipariş Durumu İlerlemesi
+`order-service` içindeki `OrderStatusScheduler`, her 60 saniyede bir sipariş durumlarını otomatik olarak ilerletir:
+
+```
+PAID → PROCESSING → SHIPPED → DELIVERED
+```
+
+Her aşama, önceki aşamada en az 1 dakika geçilmişse tetiklenir. SHIPPED aşamasına geçildiğinde RabbitMQ üzerinden `order.shipped` eventi yayılır; `notification-service` bu eventi dinleyerek kullanıcıya kargo bildirimi gönderir.
+
+### Ürün Değerlendirme Sistemi
+Kullanıcılar yalnızca **teslim edilmiş** (DELIVERED) siparişlerindeki ürünleri değerlendirebilir. Değerlendirme akışı:
+
+1. `order-service` → `GET /api/orders/has-ordered/{productId}` — kullanıcının o ürünü DELIVERED siparişte satın aldığını doğrular
+2. `product-service` → `POST /api/products/{id}/reviews` — Feign Client ile order-service'i çağırır, yetki kontrolü yapar, yorum kaydeder
+3. `GET /api/products/{id}/reviews/summary` — ortalama puan, toplam değerlendirme sayısı ve son 5 değerlendiricinin bilgilerini (ad, puan, e-posta) döner
+
+Her kullanıcı bir ürünü yalnızca bir kez değerlendirebilir (unique constraint: `product_id + user_id`).
+
+---
+
 ## Mimari
 
 8 bağımsız Spring Boot servisi API Gateway arkasında çalışır. Servisler birbirini Eureka üzerinden keşfeder, senkron iletişim için Feign Client, asenkron iletişim için RabbitMQ kullanır.
