@@ -17,9 +17,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByStatusAndUpdatedAtBefore(OrderStatus status, Instant before);
 
     @org.springframework.data.jpa.repository.Query(
-        "SELECT COUNT(o) > 0 FROM Order o JOIN o.items i " +
+        "SELECT COUNT(o) FROM Order o JOIN o.items i " +
         "WHERE o.userId = :userId AND o.status = :status AND i.productId = :productId")
-    boolean existsByUserIdAndStatusAndItemsProductId(
+    long countByUserIdAndStatusAndItemsProductId(
         @org.springframework.data.repository.query.Param("userId") Long userId,
         @org.springframework.data.repository.query.Param("status") OrderStatus status,
         @org.springframework.data.repository.query.Param("productId") Long productId);

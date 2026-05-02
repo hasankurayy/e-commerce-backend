@@ -129,7 +129,7 @@ public class OrderService {
     }
 
     public boolean hasOrderedProduct(Long userId, Long productId) {
-        return orderRepository.existsByUserIdAndStatusAndItemsProductId(userId, OrderStatus.DELIVERED, productId);
+        return orderRepository.countByUserIdAndStatusAndItemsProductId(userId, OrderStatus.DELIVERED, productId) > 0;
     }
 
     private OrderResponse toResponse(Order order) {

@@ -50,7 +50,7 @@ public class ReviewService {
     public ReviewSummaryResponse getSummary(Long productId, Long userId) {
         int total = reviewRepository.countByProductId(productId);
         double avg = total == 0 ? 0.0
-                : reviewRepository.sumRatingByProductId(productId) / total;
+                : (double) reviewRepository.sumRatingByProductId(productId) / total;
 
         List<ReviewResponse> last5 = reviewRepository
                 .findTop5ByProductIdOrderByCreatedAtDesc(productId)
