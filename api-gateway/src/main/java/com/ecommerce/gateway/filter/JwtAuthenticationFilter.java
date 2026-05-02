@@ -15,14 +15,13 @@ import java.util.List;
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
-    // JWT doğrulaması gerekmeden geçebilecek public route'lar
     private static final List<String> PUBLIC_PATHS = List.of(
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/refresh",
             "/api/products",
             "/api/categories",
-            "/api/payments/callback"  // Iyzico tarayici redirect — JWT olmaz
+            "/api/payments/callback"
     );
 
     private final JwtUtil jwtUtil;
@@ -35,45 +34,43 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
 
-        if (isPublicPath(path)) {
-            return chain.filter(exchange);
-        }
-
         String authHeader = exchange.getRequest()
                 .getHeaders()
                 .getFirst(SecurityConstants.AUTHORIZATION_HEADER);
 
-        if (authHeader == null || !authHeader.startsWith(SecurityConstants.BEARER_PREFIX)) {
+        boolean hasValidToken = false;
+        ServerWebExchange processedExchange = exchange;
+
+        // JWT varsa ve geçerliyse her zaman header'ları enjekte et (public path olsa bile)
+        if (authHeader != null && authHeader.startsWith(SecurityConstants.BEARER_PREFIX)) {
+            String token = authHeader.substring(SecurityConstants.BEARER_PREFIX.length());
+            if (jwtUtil.validateToken(token)) {
+                hasValidToken = true;
+                String userId = String.valueOf(jwtUtil.extractUserId(token));
+                String email = jwtUtil.extractEmail(token);
+                List<String> roles = jwtUtil.extractRoles(token);
+                processedExchange = exchange.mutate()
+                        .request(r -> r.headers(headers -> {
+                            headers.set(SecurityConstants.USER_ID_HEADER, userId);
+                            headers.set(SecurityConstants.USER_EMAIL_HEADER, email);
+                            headers.set(SecurityConstants.USER_ROLES_HEADER, String.join(",", roles));
+                        }))
+                        .build();
+            }
+        }
+
+        // Public olmayan path'ler için geçerli token zorunlu
+        if (!isPublicPath(path) && !hasValidToken) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
 
-        String token = authHeader.substring(SecurityConstants.BEARER_PREFIX.length());
-
-        if (!jwtUtil.validateToken(token)) {
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            return exchange.getResponse().setComplete();
-        }
-
-        // Token geçerli — kullanıcı bilgilerini header olarak downstream servislere ilet
-        String userId = String.valueOf(jwtUtil.extractUserId(token));
-        String email = jwtUtil.extractEmail(token);
-        List<String> roles = jwtUtil.extractRoles(token);
-
-        ServerWebExchange mutatedExchange = exchange.mutate()
-                .request(r -> r.headers(headers -> {
-                    headers.set(SecurityConstants.USER_ID_HEADER, userId);
-                    headers.set(SecurityConstants.USER_EMAIL_HEADER, email);
-                    headers.set(SecurityConstants.USER_ROLES_HEADER, String.join(",", roles));
-                }))
-                .build();
-
-        return chain.filter(mutatedExchange);
+        return chain.filter(processedExchange);
     }
 
     @Override
     public int getOrder() {
-        return -1; // En yüksek öncelik — diğer filter'lardan önce çalışır
+        return -1;
     }
 
     private boolean isPublicPath(String path) {

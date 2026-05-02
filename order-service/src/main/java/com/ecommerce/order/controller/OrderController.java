@@ -50,6 +50,13 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(orderService.cancel(id, userId)));
     }
 
+    @GetMapping("/has-ordered/{productId}")
+    public ResponseEntity<ApiResponse<Boolean>> hasOrdered(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long productId) {
+        return ResponseEntity.ok(ApiResponse.success(orderService.hasOrderedProduct(userId, productId)));
+    }
+
     @PatchMapping("/{id}/ship")
     public ResponseEntity<ApiResponse<OrderResponse>> ship(
             @PathVariable Long id,

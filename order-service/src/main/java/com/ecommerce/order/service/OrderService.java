@@ -128,6 +128,10 @@ public class OrderService {
         return toResponse(order);
     }
 
+    public boolean hasOrderedProduct(Long userId, Long productId) {
+        return orderRepository.existsByUserIdAndStatusAndItemsProductId(userId, OrderStatus.DELIVERED, productId);
+    }
+
     private OrderResponse toResponse(Order order) {
         List<OrderResponse.OrderItemResponse> items = order.getItems().stream()
                 .map(i -> new OrderResponse.OrderItemResponse(
