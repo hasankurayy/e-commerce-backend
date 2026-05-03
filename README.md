@@ -26,6 +26,15 @@ PAID → PROCESSING → SHIPPED → DELIVERED
 
 Her aşama, önceki aşamada en az 1 dakika geçilmişse tetiklenir. SHIPPED aşamasına geçildiğinde RabbitMQ üzerinden `order.shipped` eventi yayılır; `notification-service` bu eventi dinleyerek kullanıcıya kargo bildirimi gönderir.
 
+### Sipariş İade ve Geri Ödeme
+Kullanıcılar yalnızca **teslim edilmiş** (DELIVERED) siparişlerini iade edebilir. İade akışı:
+
+1. `order-service` → `POST /api/orders/{id}/return` — sipariş durumunu `REFUND_REQUESTED` → `REFUNDED` yapar
+2. `payment-service` → `POST /api/payments/order/{orderId}/refund` (Feign Client) — Iyzico üzerinden gerçek iade işlemi başlatır; `iyzicoPaymentTransactionId` yoksa (sandbox) direkt `REFUNDED` yapar
+3. `product-service` → `PATCH /api/products/{id}/stock/increase` (Feign Client) — iade edilen ürünlerin stoğu geri yüklenir
+
+Her iki bağımlı servis çağrısı da `try/catch` ile sarılıdır; servis geçici olarak erişilemez olsa dahi iade işlemi tamamlanır.
+
 ### Ürün Değerlendirme Sistemi
 Kullanıcılar yalnızca **teslim edilmiş** (DELIVERED) siparişlerindeki ürünleri değerlendirebilir. Değerlendirme akışı:
 

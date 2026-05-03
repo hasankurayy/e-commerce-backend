@@ -45,3 +45,9 @@ Dockerrun.aws.json
 
 # Jib local cache
 .jib/
+
+# Claude Code
+.claude/
+
+# Project description (internal)
+PROJE_ACIKLAMA.md
