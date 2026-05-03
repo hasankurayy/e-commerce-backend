@@ -33,6 +33,7 @@ public class Payment {
 
     private String iyzicoPaymentId;
     private String iyzicoConversationId;
+    private String iyzicoPaymentTransactionId;
     private String failureReason;
 
     @CreationTimestamp

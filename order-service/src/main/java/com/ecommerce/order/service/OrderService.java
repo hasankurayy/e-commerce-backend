@@ -4,6 +4,8 @@ import com.ecommerce.common.dto.PageResponse;
 import com.ecommerce.common.exception.BusinessException;
 import com.ecommerce.common.exception.ResourceNotFoundException;
 import com.ecommerce.order.client.CartFeignClient;
+import com.ecommerce.order.client.PaymentFeignClient;
+import com.ecommerce.order.client.ProductFeignClient;
 import com.ecommerce.order.dto.CreateOrderRequest;
 import com.ecommerce.order.dto.OrderResponse;
 import com.ecommerce.order.entity.Order;
@@ -30,6 +32,8 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final CartFeignClient cartFeignClient;
+    private final PaymentFeignClient paymentFeignClient;
+    private final ProductFeignClient productFeignClient;
     private final OrderEventPublisher eventPublisher;
 
     @Transactional
@@ -130,6 +134,35 @@ public class OrderService {
 
     public boolean hasOrderedProduct(Long userId, Long productId) {
         return orderRepository.countByUserIdAndStatusAndItemsProductId(userId, OrderStatus.DELIVERED, productId) > 0;
+    }
+
+    @Transactional
+    public OrderResponse requestReturn(Long id, Long userId) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", id));
+
+        if (!order.getUserId().equals(userId)) {
+            throw new BusinessException("Access denied");
+        }
+        if (order.getStatus() != OrderStatus.DELIVERED) {
+            throw new BusinessException("Yalnizca teslim edilmis siparisler iade edilebilir");
+        }
+
+        order.setStatus(OrderStatus.REFUND_REQUESTED);
+        orderRepository.save(order);
+
+        try {
+            paymentFeignClient.refund(id);
+        } catch (Exception e) {
+            throw new BusinessException("Iyzico iade basarisiz: " + e.getMessage());
+        }
+
+        order.setStatus(OrderStatus.REFUNDED);
+        order.getItems().forEach(item ->
+            productFeignClient.increaseStock(item.getProductId(), item.getQuantity())
+        );
+
+        return toResponse(orderRepository.save(order));
     }
 
     private OrderResponse toResponse(Order order) {

@@ -95,6 +95,19 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(orderService.hasOrderedProduct(userId, productId)));
     }
 
+    @PostMapping("/{id}/return")
+    @Operation(summary = "İade talebi oluştur", description = "Yalnızca DELIVERED durumundaki siparişler iade edilebilir. Iyzico refund çağrısı yapılır ve stok geri yüklenir.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "İade başarılı"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "İade yapılamaz durumda"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Sipariş bulunamadı")
+    })
+    public ResponseEntity<ApiResponse<OrderResponse>> requestReturn(
+            @Parameter(hidden = true) @RequestHeader("X-User-Id") Long userId,
+            @Parameter(description = "Sipariş ID", example = "1") @PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(orderService.requestReturn(id, userId)));
+    }
+
     @PatchMapping("/{id}/ship")
     @Operation(summary = "Siparişi kargoya ver", description = "Siparişin durumunu SHIPPED olarak günceller ve takip numarası atar. Yalnızca PAID durumundaki siparişler kargoya verilebilir.")
     @ApiResponses({

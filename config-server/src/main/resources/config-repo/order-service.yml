@@ -30,3 +30,11 @@ feign:
       default:
         connect-timeout: 5000
         read-timeout: 5000
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    config-url: /order-service/v3/api-docs/swagger-config
+    url: /order-service/v3/api-docs

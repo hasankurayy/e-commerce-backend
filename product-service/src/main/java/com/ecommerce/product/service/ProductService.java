@@ -101,6 +101,13 @@ public class ProductService {
         productRepository.save(product);
     }
 
+    @Transactional
+    public void increaseStock(Long id, int quantity) {
+        Product product = findProduct(id);
+        product.setStock(product.getStock() + quantity);
+        productRepository.save(product);
+    }
+
     private Product findProduct(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", id));

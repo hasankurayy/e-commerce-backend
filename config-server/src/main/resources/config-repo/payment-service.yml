@@ -30,3 +30,11 @@ rabbitmq:
   routing-keys:
     payment-completed: payment.completed
     payment-failed: payment.failed
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    config-url: /payment-service/v3/api-docs/swagger-config
+    url: /payment-service/v3/api-docs

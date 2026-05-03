@@ -80,6 +80,9 @@ public class PaymentService {
             if ("SUCCESS".equals(result.getPaymentStatus())) {
                 payment.setStatus(PaymentStatus.COMPLETED);
                 payment.setIyzicoPaymentId(result.getPaymentId());
+                if (result.getPaymentItems() != null && !result.getPaymentItems().isEmpty()) {
+                    payment.setIyzicoPaymentTransactionId(result.getPaymentItems().get(0).getPaymentTransactionId());
+                }
                 eventPublisher.publishPaymentCompleted(payment.getOrderId(), payment.getUserId(), payment.getAmount());
                 log.info("Odeme tamamlandi: orderId={}", payment.getOrderId());
             } else if ("FAILURE".equals(result.getPaymentStatus())) {
@@ -104,5 +107,32 @@ public class PaymentService {
     public Payment getByOrderId(Long orderId) {
         return paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order icin odeme bulunamadi: " + orderId));
+    }
+
+    @Transactional
+    public Payment refund(Long orderId) {
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order icin odeme bulunamadi: " + orderId));
+
+        if (payment.getStatus() != PaymentStatus.COMPLETED) {
+            throw new BusinessException("Yalnizca tamamlanmis odemeler iade edilebilir");
+        }
+        if (payment.getIyzicoPaymentTransactionId() == null) {
+            throw new BusinessException("Iyzico islem ID bulunamadi, iade yapilamaz");
+        }
+
+        com.iyzipay.model.Refund result = iyzicoService.refund(
+                payment.getIyzicoPaymentTransactionId(),
+                String.valueOf(orderId),
+                payment.getAmount());
+
+        if (!"success".equals(result.getStatus())) {
+            log.error("Iyzico iade hatasi: {}", result.getErrorMessage());
+            throw new BusinessException("Iyzico iade basarisiz: " + result.getErrorMessage());
+        }
+
+        payment.setStatus(PaymentStatus.REFUNDED);
+        log.info("Odeme iade edildi: orderId={}", orderId);
+        return paymentRepository.save(payment);
     }
 }

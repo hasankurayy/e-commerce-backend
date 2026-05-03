@@ -21,3 +21,5 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+    config-url: /product-service/v3/api-docs/swagger-config
+    url: /product-service/v3/api-docs

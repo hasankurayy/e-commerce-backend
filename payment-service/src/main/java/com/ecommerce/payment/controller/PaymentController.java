@@ -96,6 +96,20 @@ public class PaymentController {
         return ResponseEntity.ok(ApiResponse.success(payment));
     }
 
+    @PostMapping("/order/{orderId}/refund")
+    @Operation(
+        summary = "Ödeme iadesi yap (dahili)",
+        description = "Siparişin ödemesini Iyzico üzerinden iade eder. order-service tarafından çağrılır."
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "İade başarılı"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "İade yapılamaz")
+    })
+    public ResponseEntity<ApiResponse<Payment>> refund(
+            @Parameter(description = "Sipariş ID", example = "1") @PathVariable Long orderId) {
+        return ResponseEntity.ok(ApiResponse.success(paymentService.refund(orderId)));
+    }
+
     @GetMapping("/order/{orderId}")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Siparişe ait ödemeyi getir", description = "Belirtilen siparişe ait ödeme kaydını döner.")

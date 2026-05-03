@@ -55,6 +55,37 @@ public class GatewayConfig {
                         .filters(f -> f.dedupeResponseHeader(DEDUP_CORS, "RETAIN_FIRST"))
                         .uri("lb://payment-service"))
 
+                // Swagger UI routes — strip service-name prefix, public
+                .route("user-service-swagger", r -> r
+                        .path("/user-service/swagger-ui.html", "/user-service/swagger-ui/**",
+                              "/user-service/v3/api-docs/**", "/user-service/webjars/**")
+                        .filters(f -> f.stripPrefix(1).dedupeResponseHeader(DEDUP_CORS, "RETAIN_FIRST"))
+                        .uri("lb://user-service"))
+
+                .route("product-service-swagger", r -> r
+                        .path("/product-service/swagger-ui.html", "/product-service/swagger-ui/**",
+                              "/product-service/v3/api-docs/**", "/product-service/webjars/**")
+                        .filters(f -> f.stripPrefix(1).dedupeResponseHeader(DEDUP_CORS, "RETAIN_FIRST"))
+                        .uri("lb://product-service"))
+
+                .route("cart-service-swagger", r -> r
+                        .path("/cart-service/swagger-ui.html", "/cart-service/swagger-ui/**",
+                              "/cart-service/v3/api-docs/**", "/cart-service/webjars/**")
+                        .filters(f -> f.stripPrefix(1).dedupeResponseHeader(DEDUP_CORS, "RETAIN_FIRST"))
+                        .uri("lb://cart-service"))
+
+                .route("order-service-swagger", r -> r
+                        .path("/order-service/swagger-ui.html", "/order-service/swagger-ui/**",
+                              "/order-service/v3/api-docs/**", "/order-service/webjars/**")
+                        .filters(f -> f.stripPrefix(1).dedupeResponseHeader(DEDUP_CORS, "RETAIN_FIRST"))
+                        .uri("lb://order-service"))
+
+                .route("payment-service-swagger", r -> r
+                        .path("/payment-service/swagger-ui.html", "/payment-service/swagger-ui/**",
+                              "/payment-service/v3/api-docs/**", "/payment-service/webjars/**")
+                        .filters(f -> f.stripPrefix(1).dedupeResponseHeader(DEDUP_CORS, "RETAIN_FIRST"))
+                        .uri("lb://payment-service"))
+
                 .build();
     }
 

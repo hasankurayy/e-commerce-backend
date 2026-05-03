@@ -21,7 +21,13 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/auth/refresh",
             "/api/products",
             "/api/categories",
-            "/api/payments/callback"
+            "/api/payments/callback",
+            // Swagger UI — per-service routes (gateway strips the prefix)
+            "/user-service/swagger-ui", "/user-service/v3/api-docs", "/user-service/webjars",
+            "/product-service/swagger-ui", "/product-service/v3/api-docs", "/product-service/webjars",
+            "/cart-service/swagger-ui", "/cart-service/v3/api-docs", "/cart-service/webjars",
+            "/order-service/swagger-ui", "/order-service/v3/api-docs", "/order-service/webjars",
+            "/payment-service/swagger-ui", "/payment-service/v3/api-docs", "/payment-service/webjars"
     );
 
     private final JwtUtil jwtUtil;

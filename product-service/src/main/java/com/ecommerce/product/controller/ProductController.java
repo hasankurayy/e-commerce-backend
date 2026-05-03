@@ -111,6 +111,19 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success("Product deleted"));
     }
 
+    @PatchMapping("/{id}/stock/increase")
+    @Operation(summary = "Stok artır (dahili)", description = "İade işleminde order-service tarafından çağrılır. Doğrudan kullanılmamalıdır.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Stok güncellendi"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Ürün bulunamadı")
+    })
+    public ResponseEntity<ApiResponse<Void>> increaseStock(
+            @Parameter(description = "Ürün ID", example = "1") @PathVariable Long id,
+            @Parameter(description = "Artırılacak miktar", example = "2") @RequestParam int quantity) {
+        productService.increaseStock(id, quantity);
+        return ResponseEntity.ok(ApiResponse.success("Stock updated"));
+    }
+
     @PatchMapping("/{id}/stock/decrease")
     @Operation(summary = "Stok azalt (dahili)", description = "Sipariş oluşturulduğunda order-service tarafından çağrılır. Doğrudan kullanılmamalıdır.")
     @ApiResponses({

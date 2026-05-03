@@ -3,6 +3,7 @@ package com.ecommerce.payment.service;
 import com.iyzipay.Options;
 import com.iyzipay.model.*;
 import com.iyzipay.request.CreateCheckoutFormInitializeRequest;
+import com.iyzipay.request.CreateRefundRequest;
 import com.iyzipay.request.RetrieveCheckoutFormRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -77,5 +78,17 @@ public class IyzicoService {
         request.setLocale(Locale.TR.getValue());
         request.setToken(token);
         return CheckoutForm.retrieve(request, options);
+    }
+
+    public Refund refund(String paymentTransactionId, String conversationId, java.math.BigDecimal amount) {
+        CreateRefundRequest request = new CreateRefundRequest();
+        request.setLocale(Locale.TR.getValue());
+        request.setConversationId(conversationId);
+        request.setPaymentTransactionId(paymentTransactionId);
+        request.setPrice(amount.setScale(2, java.math.RoundingMode.HALF_UP));
+        request.setCurrency(Currency.TRY.name());
+        request.setIp("85.34.78.112");
+        log.info("Iyzico iade baslatiliyor: transactionId={}, amount={}", paymentTransactionId, amount);
+        return Refund.create(request, options);
     }
 }
