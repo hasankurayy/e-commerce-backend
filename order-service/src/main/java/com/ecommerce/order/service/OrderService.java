@@ -14,6 +14,7 @@ import com.ecommerce.order.entity.OrderStatus;
 import com.ecommerce.order.messaging.OrderEventPublisher;
 import com.ecommerce.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderService {
 
     private static final Set<OrderStatus> HIDDEN_STATUSES = Set.of(
@@ -154,13 +156,17 @@ public class OrderService {
         try {
             paymentFeignClient.refund(id);
         } catch (Exception e) {
-            throw new BusinessException("Iyzico iade basarisiz: " + e.getMessage());
+            log.warn("Payment service iade cagrisi basarisiz, devam ediliyor: {}", e.getMessage());
         }
 
         order.setStatus(OrderStatus.REFUNDED);
-        order.getItems().forEach(item ->
-            productFeignClient.increaseStock(item.getProductId(), item.getQuantity())
-        );
+        order.getItems().forEach(item -> {
+            try {
+                productFeignClient.increaseStock(item.getProductId(), item.getQuantity());
+            } catch (Exception e) {
+                log.warn("Stock geri yukleme basarisiz productId={}: {}", item.getProductId(), e.getMessage());
+            }
+        });
 
         return toResponse(orderRepository.save(order));
     }
