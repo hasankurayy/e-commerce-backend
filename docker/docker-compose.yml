@@ -55,6 +55,14 @@ services:
       timeout: 5s
       retries: 5
 
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: ecommerce-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - ecommerce-net
+
   # ─── Spring Cloud ──────────────────────────────────────────────────────────
 
   config-server:
