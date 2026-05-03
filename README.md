@@ -152,3 +152,4 @@ mvn test                          # Unit testler
 mvn verify -P test                # Integration testler (Docker gerekli)
 mvn test -pl user-service -Dtest=AuthServiceTest  # Tek test
 ```
+
