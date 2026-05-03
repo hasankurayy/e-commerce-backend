@@ -13,15 +13,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Slack — Deploy başladı
-        uses: slackapi/slack-github-action@v1.27.0
+        uses: slackapi/slack-github-action@v2.0.0
         with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
           payload: |
             {
-              "text": "🚀 *Deploy başladı*\n*Repo:* ${{ github.repository }}\n*Branch:* `${{ github.ref_name }}`\n*Commit:* ${{ github.event.head_commit.message }}\n*Tetikleyen:* ${{ github.actor }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Actions Run>"
+              "text": "🚀 *Deploy başladı*\n*Repo:* ${{ github.repository }}\n*Branch:* `${{ github.ref_name }}`\n*Tetikleyen:* ${{ github.actor }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Actions Run>"
             }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -55,24 +54,22 @@ jobs:
 
       - name: Slack — Deploy başarılı
         if: success()
-        uses: slackapi/slack-github-action@v1.27.0
+        uses: slackapi/slack-github-action@v2.0.0
         with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
           payload: |
             {
-              "text": "✅ *Deploy başarılı!*\n*Repo:* ${{ github.repository }}\n*Branch:* `${{ github.ref_name }}`\n*Commit:* ${{ github.event.head_commit.message }}\n*Süre:* ${{ github.run_number }}. build\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Detaylar>"
+              "text": "✅ *Deploy başarılı!*\n*Repo:* ${{ github.repository }}\n*Branch:* `${{ github.ref_name }}`\n*Build:* #${{ github.run_number }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Detaylar>"
             }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
       - name: Slack — Deploy başarısız
         if: failure()
-        uses: slackapi/slack-github-action@v1.27.0
+        uses: slackapi/slack-github-action@v2.0.0
         with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
           payload: |
             {
-              "text": "❌ *Deploy başarısız!*\n*Repo:* ${{ github.repository }}\n*Branch:* `${{ github.ref_name }}`\n*Commit:* ${{ github.event.head_commit.message }}\n*Tetikleyen:* ${{ github.actor }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Hatayı gör>"
+              "text": "❌ *Deploy başarısız!*\n*Repo:* ${{ github.repository }}\n*Branch:* `${{ github.ref_name }}`\n*Tetikleyen:* ${{ github.actor }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Hatayı gör>"
             }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
